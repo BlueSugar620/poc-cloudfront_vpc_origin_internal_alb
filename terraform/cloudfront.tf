@@ -94,17 +94,6 @@ resource "aws_cloudfront_vpc_origin" "alb" {
   }
 }
 
-## resource "aws_lambda_function" "edge" {
-##   provider = aws.virginia
-##   filename = data.archive_file.lambda_edge.output_path
-##   source_code_hash = data.archive_file.lambda_edge.output_base64sha256
-##   function_name = "lambda-edge"
-##   role = aws_iam_role.lambda_edge_role
-##   handler = "lambda.lambda_handler"
-##   publish = true
-##   runtime = "nodejs14.x"
-## }
-
 resource "null_resource" "cloudfront_update_trigger" {
   triggers = {
     cloudfront_id = aws_cloudfront_distribution.main.id
