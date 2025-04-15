@@ -1,7 +1,8 @@
 # Certificate for CloudFront
 
 resource "aws_acm_certificate" "cloudfront" { 
-  domain_name = "cloudfront.${var.domain_name}"
+  domain_name = "*.${var.domain_name}"
+  subject_alternative_names = ["${var.domain_name}"]
   validation_method = "DNS"
   provider = aws.virginia
 }
@@ -35,7 +36,8 @@ resource "aws_acm_certificate_validation" "cloudfront" {
 # Certificate for ALB
 
 resource "aws_acm_certificate" "alb" { 
-  domain_name = "alb.${var.domain_name}"
+  domain_name = "*.${var.domain_name}"
+  subject_alternative_names = ["${var.domain_name}"]
   validation_method = "DNS"
 }
 

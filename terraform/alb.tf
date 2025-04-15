@@ -28,12 +28,54 @@ resource "aws_lb_listener" "https" {
     
     fixed_response {
       content_type = "text/plain"
-      message_body = "This is HTTPS."
+      message_body = "This is HTTPS response from ALB."
       status_code = 200
     }
   }
 
   depends_on = [aws_acm_certificate_validation.alb, aws_acm_certificate.alb]
+}
+
+resource "aws_lb_listener_rule" "one" { 
+  listener_arn = aws_lb_listener.https.arn
+  priority = 100
+
+  action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "This is ONE."
+      status_code = 200
+    }
+  }
+
+  condition {
+    host_header {
+      values = ["one.${var.domain_name}"]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "two" { 
+  listener_arn = aws_lb_listener.https.arn
+  priority = 99
+
+  action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "This is TWO."
+      status_code = 200
+    }
+  }
+
+  condition {
+    host_header {
+      values = ["two.${var.domain_name}"]
+    }
+  }
 }
 
 

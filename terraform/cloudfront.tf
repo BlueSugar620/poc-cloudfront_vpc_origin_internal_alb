@@ -2,32 +2,27 @@
 
 resource "aws_cloudfront_distribution" "main" { 
   origin {
-    domain_name = "alb.${var.domain_name}"
+    domain_name = var.domain_name
     origin_id = aws_lb.main.id
     vpc_origin_config {
       vpc_origin_id = aws_cloudfront_vpc_origin.alb.id
     } 
   }
   enabled = true
-  aliases = ["cloudfront.${var.domain_name}"]
+  aliases = ["${var.domain_name}", "*.${var.domain_name}"]
 
   default_cache_behavior {
     allowed_methods = ["HEAD", "GET"]
     cached_methods = ["HEAD", "GET"]
     target_origin_id = aws_lb.main.id
     
-    forwarded_values {
-      query_string = true
-      cookies {
-        forward = "all"
-      }
-      headers = ["*"]
-    }
-
-    viewer_protocol_policy = "redirect-to-https"
+    viewer_protocol_policy = "https-only"
     min_ttl = 0
     default_ttl = 10
     max_ttl = 60
+
+    cache_policy_id = aws_cloudfront_cache_policy.pass_host_cache.id
+    origin_request_policy_id = aws_cloudfront_origin_request_policy.pass_host.id
   }
 
   restrictions {
@@ -45,6 +40,45 @@ resource "aws_cloudfront_distribution" "main" {
   }
 }
 
+resource "aws_cloudfront_origin_request_policy" "pass_host" { 
+  name = "pass-host-header"
+
+  cookies_config {
+    cookie_behavior = "none"
+  }
+  query_strings_config {
+    query_string_behavior = "none"
+  }
+  headers_config {
+    header_behavior = "whitelist"
+    headers {
+      items = ["Host"]
+    }
+  }
+}
+
+resource "aws_cloudfront_cache_policy" "pass_host_cache" { 
+  name = "pass-host-cache"
+
+  parameters_in_cache_key_and_forwarded_to_origin {
+    enable_accept_encoding_gzip = true
+    enable_accept_encoding_brotli = true
+
+    cookies_config {
+      cookie_behavior = "none"
+    }
+    query_strings_config {
+      query_string_behavior = "none"
+    }
+    headers_config {
+      header_behavior = "whitelist"
+      headers {
+        items = ["Host"]
+      }
+    }
+  }
+}
+
 resource "aws_cloudfront_vpc_origin" "alb" { 
   vpc_origin_endpoint_config {
     name = "alb-vpc-origin"
@@ -59,6 +93,17 @@ resource "aws_cloudfront_vpc_origin" "alb" {
     }
   }
 }
+
+## resource "aws_lambda_function" "edge" {
+##   provider = aws.virginia
+##   filename = data.archive_file.lambda_edge.output_path
+##   source_code_hash = data.archive_file.lambda_edge.output_base64sha256
+##   function_name = "lambda-edge"
+##   role = aws_iam_role.lambda_edge_role
+##   handler = "lambda.lambda_handler"
+##   publish = true
+##   runtime = "nodejs14.x"
+## }
 
 resource "null_resource" "cloudfront_update_trigger" { 
   triggers = {
@@ -82,3 +127,5 @@ resource "aws_vpc_security_group_ingress_rule" "alb_from_cloudfront" {
 
   depends_on = [null_resource.cloudfront_update_trigger, data.aws_security_group.vpc_origin]
 }
+
+
